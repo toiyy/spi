@@ -19,9 +19,38 @@ function wordLen(w: string): number {
   return [...w].length;
 }
 
+// 語釈の中身は主に漢字熟語が担うので、2 文字以上の漢字連なりをキーワードとして取り出す。
+// 頻出で情報量の乏しい語は除外。
+const STOP = new Set(["物事", "相手", "自分", "非常", "場合", "様子", "程度", "全体"]);
+
+function keywords(meaning: string): Set<string> {
+  const m = meaning.match(/[一-龥々]{2,}/g) ?? [];
+  return new Set(m.filter((t) => !STOP.has(t)));
+}
+
+function overlap(a: Set<string>, b: Set<string>): number {
+  let n = 0;
+  for (const t of a) if (b.has(t)) n++;
+  return n;
+}
+
+/** 候補を「正解の語釈とキーワードが多く重なる順」に並べ替える。同点は乱数で散らす */
+function rankByMeaning(
+  cands: readonly Idiom[],
+  correct: Idiom,
+  rng: () => number,
+): Idiom[] {
+  const target = keywords(correct.meaning);
+  return shuffleArray(cands, rng)
+    .map((x) => ({ x, score: overlap(keywords(x.meaning), target) }))
+    .sort((a, b) => b.score - a.score)
+    .map((o) => o.x);
+}
+
 /**
  * 4択問題の選択肢を作る。
- * 誤答は「同じ意味グループ かつ 同じ字数」→「同じ字数」→「その他」の順で選ぶ。
+ * 誤答は「同じ意味グループ かつ 同じ字数」→「同じ字数」→「その他」の順で候補を作り、
+ * 各段では正解の語釈とキーワードが近いものを優先する。
  * 入力配列は破壊しない。
  */
 export function buildChoices(
@@ -44,17 +73,17 @@ export function buildChoices(
 
   const tierGroup = others.filter((x) => inGroup(x) && wordLen(x.word) === cLen);
   const tierLen = others.filter((x) => !inGroup(x) && wordLen(x.word) === cLen);
-  const tierRest = others.filter((x) => wordLen(x.word) !== cLen && !tierGroup.includes(x));
+  const tierRest = others.filter(
+    (x) => wordLen(x.word) !== cLen && !tierGroup.includes(x),
+  );
 
-  const distractors: Idiom[] = [];
-  for (const tier of [tierGroup, tierLen, tierRest]) {
-    for (const cand of shuffleArray(tier, rng)) {
-      if (distractors.length >= need) break;
-      distractors.push(cand);
-    }
-    if (distractors.length >= need) break;
-  }
+  const ordered = [
+    ...rankByMeaning(tierGroup, correct, rng),
+    ...rankByMeaning(tierLen, correct, rng),
+    ...shuffleArray(tierRest, rng),
+  ];
 
+  const distractors = ordered.slice(0, need);
   return {
     choices: shuffleArray([correct, ...distractors], rng),
     answerId: correct.id,

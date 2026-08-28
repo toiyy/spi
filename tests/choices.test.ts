@@ -92,6 +92,36 @@ describe("buildChoices", () => {
     expect(choices).toEqual([POOL[0]]);
   });
 
+  it("語釈のキーワードが近い候補を優先する", () => {
+    const correct: Idiom = {
+      id: "c", word: "憂慮", reading: "ゆうりょ",
+      meaning: "強い不安を感じて心配すること", category: "meaning", group: "emo",
+    };
+    const near: Idiom = {
+      id: "near", word: "懸念", reading: "けねん",
+      meaning: "先行きに不安を覚えること", category: "meaning", group: "emo",
+    };
+    const far: Idiom = {
+      id: "far", word: "落成", reading: "らくせい",
+      meaning: "建物の工事が完了すること", category: "meaning", group: "emo",
+    };
+    const filler = Array.from({ length: 6 }, (_, i) => ({
+      id: `f${i}`, word: `語${i}`, reading: "よみ",
+      meaning: `無関係な事柄${i}`, category: "meaning" as const, group: "emo",
+    }));
+    // near は必ず選ばれ、far より前に来る（＝ far は押し出されて選外になりうる）
+    let nearIn = 0;
+    for (let s = 1; s <= 40; s++) {
+      const { choices } = buildChoices(correct, [correct, near, far, ...filler], {
+        rng: seeded(s),
+      });
+      const ids = choices.map((x) => x.id);
+      expect(ids).toContain("near");
+      if (!ids.includes("far")) nearIn++;
+    }
+    expect(nearIn).toBeGreaterThan(0); // far が選外になる回がある = 優先順が効いている
+  });
+
   it("入力を破壊しない", () => {
     const snap = JSON.stringify(POOL);
     buildChoices(POOL[0], POOL, { rng: seeded(1) });

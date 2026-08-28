@@ -3,10 +3,11 @@
 ## 2026-08-28 — 4択モード
 
 - 「意味」を見て正しい語を4つから選ぶ出題形式を追加（ホームで「4択」/「思い出す(○×)」を切替、既定は4択）
-- `lib/choices.ts`（`buildChoices`）: 誤答3語を「同じ意味グループ かつ 同字数」→「同字数」→「その他」の順で選定。RNG 注入可・非破壊。`tests/choices.test.ts` 9件
-- `Idiom` に任意の `group` フィールド追加（`lib/types.ts` / `parseIdioms` 検証）。`data/idioms.json` の 142/200 語に意味グループを付与（例: distress, wisdom, gradual, serenity …）
+- `lib/choices.ts`（`buildChoices`）: 誤答3語を「同じ意味グループ かつ 同字数」→「同字数」→「その他」の順で選定。各段では正解の語釈と漢字熟語キーワードが近い順に優先。RNG 注入可・非破壊
+- `Idiom` に任意の `group` フィールド追加（`lib/types.ts` / `parseIdioms` 検証）
+- `data/idioms.json` の **197/200 語**に広い意味ドメインを付与（emotion / speech / mind / character / power / conflict / change / quantity / skill / conduct / deceit）。字数（二字/四字）ごとに各ドメイン4語以上あり、明らかに無関係な誤答が出ないようにした（残り3語は現・押し並べて・揺蕩うの特殊字数）
 - 誤答した語はこれまで通りセッション中に再出題。成績・履歴の仕様は不変
-- `npm test` 44 件緑・静的エクスポートビルド成功
+- `npm test` 45 件緑・静的エクスポートビルド成功
 
 ## 2026-08-28 — GitHub Pages 公開
 
