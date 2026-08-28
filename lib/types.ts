@@ -9,8 +9,13 @@ export interface Idiom {
   category: Category;
   /** 4択の誤答を選ぶための意味グループ（distractors 未設定時のフォールバック用） */
   group?: string;
-  /** 4択の誤答として使う、意味の近い語（この一覧の外の語）。3語以上 */
-  distractors?: string[];
+  /** 4択の誤答として使う、意味の近い語（この一覧の外の語）とその語釈。3語以上 */
+  distractors?: Distractor[];
+}
+
+export interface Distractor {
+  word: string;
+  gloss: string;
 }
 
 export type Grade = "correct" | "wrong";

@@ -166,7 +166,8 @@ export default function Page() {
                     disabled={answered}
                     onClick={() => setPicked(c.id)}
                   >
-                    {c.word}
+                    <span className="c-word">{c.word}</span>
+                    {answered && <span className="c-gloss">{c.gloss}</span>}
                   </button>
                 );
               })}

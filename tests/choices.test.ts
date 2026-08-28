@@ -48,9 +48,13 @@ const POOL: Idiom[] = [
 const byWord = new Map(POOL.map((p) => [p.word, p]));
 
 describe("buildChoices — 手作り誤答(distractors)", () => {
-  const correct = mk("x", "worry", "憂慮", {
-    distractors: ["懸念", "危惧", "杞憂", "気掛かり"],
-  });
+  const dset = [
+    { word: "懸念", gloss: "気がかりに思うこと" },
+    { word: "危惧", gloss: "悪い結果をおそれること" },
+    { word: "杞憂", gloss: "とりこし苦労" },
+    { word: "気掛かり", gloss: "心にかかって離れないこと" },
+  ];
+  const correct = mk("x", "worry", "憂慮", { distractors: dset });
 
   it("誤答は distractors から取り、正解を含む4択になる", () => {
     const { choices, answerId } = buildChoices(correct, POOL, { rng: seeded(1) });
@@ -58,8 +62,17 @@ describe("buildChoices — 手作り誤答(distractors)", () => {
     expect(answerId).toBe(ANSWER_ID);
     const ans = choices.find((c) => c.id === ANSWER_ID);
     expect(ans?.word).toBe("憂慮");
-    const others = choices.filter((c) => c.id !== ANSWER_ID).map((c) => c.word);
-    for (const w of others) expect(correct.distractors).toContain(w);
+    for (const c of choices.filter((c) => c.id !== ANSWER_ID)) {
+      expect(dset.map((d) => d.word)).toContain(c.word);
+    }
+  });
+
+  it("各選択肢に語釈(gloss)が付く", () => {
+    const { choices } = buildChoices(correct, POOL, { rng: seeded(4) });
+    for (const c of choices) expect(c.gloss.length).toBeGreaterThan(0);
+    expect(choices.find((c) => c.id === ANSWER_ID)?.gloss).toBe("xの意味");
+    const kenen = choices.find((c) => c.word === "懸念");
+    if (kenen) expect(kenen.gloss).toBe("気がかりに思うこと");
   });
 
   it("distractors が4語以上でも3語だけ選ぶ", () => {
@@ -80,12 +93,17 @@ describe("buildChoices — 手作り誤答(distractors)", () => {
 });
 
 describe("buildChoices — フォールバック(distractors なし)", () => {
-  it("正解を含む4択・id 一意", () => {
+  it("正解を含む4択・id 一意・gloss はプールの意味", () => {
     const { choices, answerId } = buildChoices(POOL[0], POOL, { rng: seeded(1) });
     expect(choices).toHaveLength(4);
     expect(answerId).toBe(ANSWER_ID);
-    expect(choices.find((c) => c.id === ANSWER_ID)?.word).toBe("憂慮");
+    const ans = choices.find((c) => c.id === ANSWER_ID);
+    expect(ans?.word).toBe("憂慮");
+    expect(ans?.gloss).toBe("aの意味");
     expect(new Set(choices.map((c) => c.id)).size).toBe(4);
+    for (const c of choices.filter((c) => c.id !== ANSWER_ID)) {
+      expect(c.gloss).toBe(`${byWord.get(c.word)?.id}の意味`);
+    }
   });
 
   it("同グループが十分あれば誤答は同グループ・同字数", () => {
@@ -100,7 +118,7 @@ describe("buildChoices — フォールバック(distractors なし)", () => {
 
   it("同グループが足りなければ同字数で補う", () => {
     const { choices } = buildChoices(POOL[4], POOL, { rng: seeded(7) });
-    expect(choices.map((c) => c.word)).toContain("敬服"); // 唯一のグループ仲間
+    expect(choices.map((c) => c.word)).toContain("敬服");
     for (const c of choices) expect([...c.word].length).toBe(2);
   });
 
@@ -113,12 +131,8 @@ describe("buildChoices — フォールバック(distractors なし)", () => {
     const correct: Idiom = mk("cc", "emo", "憂慮", {
       meaning: "強い不安を感じて心配すること",
     });
-    const near = mk("near", "emo", "懸念", {
-      meaning: "先行きに不安を覚えること",
-    });
-    const far = mk("far", "emo", "落成", {
-      meaning: "建物の工事が完了すること",
-    });
+    const near = mk("near", "emo", "懸念", { meaning: "先行きに不安を覚えること" });
+    const far = mk("far", "emo", "落成", { meaning: "建物の工事が完了すること" });
     const filler = Array.from({ length: 6 }, (_, i) =>
       mk(`f${i}`, "emo", `語${i}`, { meaning: `無関係な事柄${i}` }),
     );
@@ -142,7 +156,7 @@ describe("buildChoices — フォールバック(distractors なし)", () => {
 
   it("正解しかなければ正解だけを返す", () => {
     const { choices } = buildChoices(POOL[0], [POOL[0]], { rng: seeded(1) });
-    expect(choices).toEqual([{ id: ANSWER_ID, word: "憂慮" }]);
+    expect(choices).toEqual([{ id: ANSWER_ID, word: "憂慮", gloss: "aの意味" }]);
   });
 });
 
@@ -150,7 +164,13 @@ it("入力を破壊しない", () => {
   const snap = JSON.stringify(POOL);
   buildChoices(POOL[0], POOL, { rng: seeded(1) });
   buildChoices(
-    mk("z", "worry", "憂慮", { distractors: ["懸念", "危惧", "杞憂"] }),
+    mk("z", "worry", "憂慮", {
+      distractors: [
+        { word: "懸念", gloss: "g1" },
+        { word: "危惧", gloss: "g2" },
+        { word: "杞憂", gloss: "g3" },
+      ],
+    }),
     POOL,
     { rng: seeded(1) },
   );

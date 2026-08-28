@@ -32,12 +32,16 @@ export function parseIdioms(raw: unknown): Idiom[] {
       throw new Error(`idioms[${i}] (${String(o.id)}): "group" は空でない文字列である必要があります`);
     }
     if (o.distractors !== undefined) {
-      if (
-        !Array.isArray(o.distractors) ||
-        o.distractors.length < 3 ||
-        o.distractors.some((d) => typeof d !== "string" || d.length === 0)
-      ) {
-        throw new Error(`idioms[${i}] (${String(o.id)}): "distractors" は3語以上の文字列配列である必要があります`);
+      const ds = o.distractors as unknown;
+      const okItem = (d: unknown): d is { word: string; gloss: string } =>
+        !!d &&
+        typeof d === "object" &&
+        typeof (d as Record<string, unknown>).word === "string" &&
+        (d as Record<string, unknown>).word !== "" &&
+        typeof (d as Record<string, unknown>).gloss === "string" &&
+        (d as Record<string, unknown>).gloss !== "";
+      if (!Array.isArray(ds) || ds.length < 3 || !ds.every(okItem)) {
+        throw new Error(`idioms[${i}] (${String(o.id)}): "distractors" は {word, gloss} を3件以上必要とします`);
       }
     }
     const id = o.id as string;
@@ -53,7 +57,7 @@ export function parseIdioms(raw: unknown): Idiom[] {
       example: o.example as string | undefined,
       category: o.category,
       group: o.group as string | undefined,
-      distractors: o.distractors as string[] | undefined,
+      distractors: o.distractors as Idiom["distractors"],
     };
   });
 }

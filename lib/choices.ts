@@ -5,6 +5,8 @@ export interface ChoiceOption {
   /** 正解は "answer"、誤答は "d0" "d1" … */
   id: string;
   word: string;
+  /** その語の意味（答え合わせ画面で表示） */
+  gloss: string;
 }
 
 export interface ChoiceSet {
@@ -55,7 +57,7 @@ function rankByMeaning(
 
 /**
  * 4択問題の選択肢を作る。
- * `correct.distractors`（手作りの近い語）があればそれを誤答に使う。
+ * `correct.distractors`（手作りの近い語＋語釈）があればそれを誤答に使う。
  * 無ければ語彙プールから「同じ意味グループ かつ 同字数」→「同字数」→「その他」で補う。
  * 入力配列は破壊しない。
  */
@@ -68,11 +70,18 @@ export function buildChoices(
   const count = opts.count ?? 4;
   const need = Math.max(0, count - 1);
 
-  const answer: ChoiceOption = { id: ANSWER_ID, word: correct.word };
-  let distractorWords: string[];
+  const answer: ChoiceOption = {
+    id: ANSWER_ID,
+    word: correct.word,
+    gloss: correct.meaning,
+  };
+
+  let distractors: ChoiceOption[];
 
   if (correct.distractors && correct.distractors.length >= need) {
-    distractorWords = shuffleArray(correct.distractors, rng).slice(0, need);
+    distractors = shuffleArray(correct.distractors, rng)
+      .slice(0, need)
+      .map((d, i) => ({ id: `d${i}`, word: d.word, gloss: d.gloss }));
   } else {
     const byId = new Map<string, Idiom>();
     for (const x of pool) {
@@ -89,27 +98,31 @@ export function buildChoices(
       (x) => wordLen(x.word) !== cLen && !tierGroup.includes(x),
     );
 
-    const ordered = [
+    const ordered: { word: string; gloss: string }[] = [
       ...(correct.distractors ?? []),
-      ...rankByMeaning(tierGroup, correct, rng).map((x) => x.word),
-      ...rankByMeaning(tierLen, correct, rng).map((x) => x.word),
-      ...shuffleArray(tierRest, rng).map((x) => x.word),
+      ...rankByMeaning(tierGroup, correct, rng).map((x) => ({
+        word: x.word,
+        gloss: x.meaning,
+      })),
+      ...rankByMeaning(tierLen, correct, rng).map((x) => ({
+        word: x.word,
+        gloss: x.meaning,
+      })),
+      ...shuffleArray(tierRest, rng).map((x) => ({
+        word: x.word,
+        gloss: x.meaning,
+      })),
     ];
-    // 重複語を除いて必要数だけ
+
     const seen = new Set<string>([correct.word]);
-    distractorWords = [];
-    for (const w of ordered) {
-      if (seen.has(w)) continue;
-      seen.add(w);
-      distractorWords.push(w);
-      if (distractorWords.length >= need) break;
+    distractors = [];
+    for (const d of ordered) {
+      if (seen.has(d.word)) continue;
+      seen.add(d.word);
+      distractors.push({ id: `d${distractors.length}`, word: d.word, gloss: d.gloss });
+      if (distractors.length >= need) break;
     }
   }
-
-  const distractors: ChoiceOption[] = distractorWords.map((word, i) => ({
-    id: `d${i}`,
-    word,
-  }));
 
   return {
     choices: shuffleArray([answer, ...distractors], rng),

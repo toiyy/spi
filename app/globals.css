@@ -213,12 +213,20 @@ button.choice {
   text-align: left;
   padding: 14px 16px;
   font-size: 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-button.choice .c-reading {
-  color: var(--muted);
-  font-size: 0.8rem;
-  margin-left: 8px;
+button.choice .c-word {
+  font-weight: 600;
+}
+
+button.choice .c-gloss {
+  font-size: 0.85rem;
+  font-weight: 400;
+  opacity: 0.85;
+  line-height: 1.5;
 }
 
 button.choice.correct {
