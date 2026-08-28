@@ -31,6 +31,15 @@ export function parseIdioms(raw: unknown): Idiom[] {
     if (o.group !== undefined && (typeof o.group !== "string" || o.group.length === 0)) {
       throw new Error(`idioms[${i}] (${String(o.id)}): "group" は空でない文字列である必要があります`);
     }
+    if (o.distractors !== undefined) {
+      if (
+        !Array.isArray(o.distractors) ||
+        o.distractors.length < 3 ||
+        o.distractors.some((d) => typeof d !== "string" || d.length === 0)
+      ) {
+        throw new Error(`idioms[${i}] (${String(o.id)}): "distractors" は3語以上の文字列配列である必要があります`);
+      }
+    }
     const id = o.id as string;
     if (seen.has(id)) {
       throw new Error(`idioms[${i}]: id "${id}" が重複しています`);
@@ -44,6 +53,7 @@ export function parseIdioms(raw: unknown): Idiom[] {
       example: o.example as string | undefined,
       category: o.category,
       group: o.group as string | undefined,
+      distractors: o.distractors as string[] | undefined,
     };
   });
 }

@@ -33,7 +33,7 @@
 - `npm test` 44件緑 / 静的エクスポートビルド成功。https://toiyy.github.io/spi/ で公開中
 - コアロジック: `lib/queue.ts` `lib/session.ts` `lib/stats.ts` `lib/idioms.ts` `lib/choices.ts`(4択の誤答選定)
 - 画面: `app/page.tsx`（4択 / ○× 出題）, `app/history/page.tsx`
-- 4択の誤答は `idiom.group`（意味ドメイン、197/200語に付与。emotion/speech/mind/character/power/conflict/change/quantity/skill/conduct/deceit）＋同字数＋語釈キーワードの近さで `buildChoices` が選定
+- 4択の誤答は `idiom.distractors`（正解に意味が近い一覧外の語を手作り、全200語×3）。`buildChoices` はこれを使い、無ければ `group`（意味ドメイン）＋同字数のフォールバック
 - 語彙 `data/idioms.json` は 200 語（すべて `category: "meaning"`）。中身はユーザー作成一覧 `tansaku/SPI言語頻出語句一覧.md`（頻出150+四字熟語50、出典 theport.jp 261089）**のみ**。種51語・自作57語は 2026-08-28 に出題プールから除外（`scratchpad/idioms.283.json` にバックアップ）。example ありは24語だけ
 
 ## 次にやること

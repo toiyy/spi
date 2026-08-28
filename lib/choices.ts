@@ -1,12 +1,20 @@
 import type { Idiom } from "./types";
 import { shuffleArray } from "./queue";
 
+export interface ChoiceOption {
+  /** 正解は "answer"、誤答は "d0" "d1" … */
+  id: string;
+  word: string;
+}
+
 export interface ChoiceSet {
-  /** シャッフル済みの選択肢（通常4つ、プールが小さければそれ未満） */
-  choices: Idiom[];
-  /** 正解の id */
+  /** シャッフル済みの選択肢（通常4つ） */
+  choices: ChoiceOption[];
+  /** 正解の選択肢 id（= "answer"） */
   answerId: string;
 }
+
+export const ANSWER_ID = "answer";
 
 export interface BuildChoicesOptions {
   /** 選択肢の総数（正解含む）。既定 4 */
@@ -20,7 +28,6 @@ function wordLen(w: string): number {
 }
 
 // 語釈の中身は主に漢字熟語が担うので、2 文字以上の漢字連なりをキーワードとして取り出す。
-// 頻出で情報量の乏しい語は除外。
 const STOP = new Set(["物事", "相手", "自分", "非常", "場合", "様子", "程度", "全体"]);
 
 function keywords(meaning: string): Set<string> {
@@ -34,7 +41,6 @@ function overlap(a: Set<string>, b: Set<string>): number {
   return n;
 }
 
-/** 候補を「正解の語釈とキーワードが多く重なる順」に並べ替える。同点は乱数で散らす */
 function rankByMeaning(
   cands: readonly Idiom[],
   correct: Idiom,
@@ -49,8 +55,8 @@ function rankByMeaning(
 
 /**
  * 4択問題の選択肢を作る。
- * 誤答は「同じ意味グループ かつ 同じ字数」→「同じ字数」→「その他」の順で候補を作り、
- * 各段では正解の語釈とキーワードが近いものを優先する。
+ * `correct.distractors`（手作りの近い語）があればそれを誤答に使う。
+ * 無ければ語彙プールから「同じ意味グループ かつ 同字数」→「同字数」→「その他」で補う。
  * 入力配列は破壊しない。
  */
 export function buildChoices(
@@ -62,30 +68,51 @@ export function buildChoices(
   const count = opts.count ?? 4;
   const need = Math.max(0, count - 1);
 
-  const byId = new Map<string, Idiom>();
-  for (const x of pool) {
-    if (x.id !== correct.id && !byId.has(x.id)) byId.set(x.id, x);
+  const answer: ChoiceOption = { id: ANSWER_ID, word: correct.word };
+  let distractorWords: string[];
+
+  if (correct.distractors && correct.distractors.length >= need) {
+    distractorWords = shuffleArray(correct.distractors, rng).slice(0, need);
+  } else {
+    const byId = new Map<string, Idiom>();
+    for (const x of pool) {
+      if (x.id !== correct.id && !byId.has(x.id)) byId.set(x.id, x);
+    }
+    const others = [...byId.values()];
+    const cLen = wordLen(correct.word);
+    const inGroup = (x: Idiom) =>
+      correct.group !== undefined && x.group === correct.group;
+
+    const tierGroup = others.filter((x) => inGroup(x) && wordLen(x.word) === cLen);
+    const tierLen = others.filter((x) => !inGroup(x) && wordLen(x.word) === cLen);
+    const tierRest = others.filter(
+      (x) => wordLen(x.word) !== cLen && !tierGroup.includes(x),
+    );
+
+    const ordered = [
+      ...(correct.distractors ?? []),
+      ...rankByMeaning(tierGroup, correct, rng).map((x) => x.word),
+      ...rankByMeaning(tierLen, correct, rng).map((x) => x.word),
+      ...shuffleArray(tierRest, rng).map((x) => x.word),
+    ];
+    // 重複語を除いて必要数だけ
+    const seen = new Set<string>([correct.word]);
+    distractorWords = [];
+    for (const w of ordered) {
+      if (seen.has(w)) continue;
+      seen.add(w);
+      distractorWords.push(w);
+      if (distractorWords.length >= need) break;
+    }
   }
-  const others = [...byId.values()];
-  const cLen = wordLen(correct.word);
-  const inGroup = (x: Idiom) =>
-    correct.group !== undefined && x.group === correct.group;
 
-  const tierGroup = others.filter((x) => inGroup(x) && wordLen(x.word) === cLen);
-  const tierLen = others.filter((x) => !inGroup(x) && wordLen(x.word) === cLen);
-  const tierRest = others.filter(
-    (x) => wordLen(x.word) !== cLen && !tierGroup.includes(x),
-  );
+  const distractors: ChoiceOption[] = distractorWords.map((word, i) => ({
+    id: `d${i}`,
+    word,
+  }));
 
-  const ordered = [
-    ...rankByMeaning(tierGroup, correct, rng),
-    ...rankByMeaning(tierLen, correct, rng),
-    ...shuffleArray(tierRest, rng),
-  ];
-
-  const distractors = ordered.slice(0, need);
   return {
-    choices: shuffleArray([correct, ...distractors], rng),
-    answerId: correct.id,
+    choices: shuffleArray([answer, ...distractors], rng),
+    answerId: ANSWER_ID,
   };
 }

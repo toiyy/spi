@@ -7,8 +7,10 @@ export interface Idiom {
   meaning: string;
   example?: string;
   category: Category;
-  /** 4択の誤答を選ぶための意味グループ。同じ値どうしは紛らわしい語 */
+  /** 4択の誤答を選ぶための意味グループ（distractors 未設定時のフォールバック用） */
   group?: string;
+  /** 4択の誤答として使う、意味の近い語（この一覧の外の語）。3語以上 */
+  distractors?: string[];
 }
 
 export type Grade = "correct" | "wrong";

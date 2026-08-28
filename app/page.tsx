@@ -142,8 +142,9 @@ export default function Page() {
     );
 
     if (mode === "choice") {
+      const answerId = quiz?.answerId ?? null;
       const answered = picked !== null;
-      const hit = picked === id;
+      const hit = picked === answerId;
       return (
         <>
           <h1>この意味の語は？</h1>
@@ -153,7 +154,7 @@ export default function Page() {
             <div className="choices">
               {(quiz?.choices ?? []).map((c) => {
                 const cls =
-                  answered && c.id === id
+                  answered && c.id === answerId
                     ? "choice correct"
                     : answered && c.id === picked
                       ? "choice wrong"
@@ -166,7 +167,6 @@ export default function Page() {
                     onClick={() => setPicked(c.id)}
                   >
                     {c.word}
-                    <span className="c-reading">{c.reading}</span>
                   </button>
                 );
               })}
@@ -174,7 +174,7 @@ export default function Page() {
             {answered && (
               <>
                 <p className={hit ? "judge hit" : "judge miss"}>
-                  {hit ? "正解" : `不正解 — 正解は「${idiom.word}」`}
+                  {hit ? "正解" : "不正解"} — 正解は「{idiom.word}」（{idiom.reading}）
                 </p>
                 {idiom.example && (
                   <div className="answer">
