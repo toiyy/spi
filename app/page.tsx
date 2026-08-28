@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import idiomsJson from "@/data/idioms.json";
 import { indexById, parseIdioms } from "@/lib/idioms";
 import { buildQueue } from "@/lib/queue";
+import { buildChoices, type ChoiceSet } from "@/lib/choices";
 import {
   currentId,
   grade,
@@ -19,20 +20,33 @@ const ALL_IDIOMS = parseIdioms(idiomsJson);
 const BY_ID = indexById(ALL_IDIOMS);
 
 type View = "home" | "study" | "result";
+type Mode = "choice" | "recall";
 
 export default function Page() {
   const [view, setView] = useState<View>("home");
+  const [mode, setMode] = useState<Mode>("choice");
   const [count, setCount] = useState(ALL_IDIOMS.length);
   const [shuffle, setShuffle] = useState(true);
   const [session, setSession] = useState<SessionState>(() => startSession([]));
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(false); // recall モード用
+  const [quiz, setQuiz] = useState<ChoiceSet | null>(null); // choice モード用
+  const [picked, setPicked] = useState<string | null>(null);
   const savedFor = useRef<SessionState | null>(null);
+
+  function loadQuizFor(s: SessionState) {
+    const id = currentId(s);
+    const idiom = id ? BY_ID.get(id) : undefined;
+    setQuiz(idiom ? buildChoices(idiom, ALL_IDIOMS) : null);
+    setPicked(null);
+  }
 
   function begin() {
     const queue = buildQueue(ALL_IDIOMS, { count, shuffle });
-    setSession(startSession(queue.map((x) => x.id)));
+    const s = startSession(queue.map((x) => x.id));
+    setSession(s);
     setRevealed(false);
     savedFor.current = null;
+    loadQuizFor(s);
     setView("study");
   }
 
@@ -44,15 +58,37 @@ export default function Page() {
       savedFor.current = next;
       saveSession(toRecord(next));
       setView("result");
+      return;
     }
+    loadQuizFor(next);
   }
 
   if (view === "home") {
     return (
       <>
         <h1>SPI熟語暗記</h1>
-        <p className="sub">語句の意味 / 種データ {ALL_IDIOMS.length} 語</p>
+        <p className="sub">語句の意味 / 全 {ALL_IDIOMS.length} 語</p>
         <div className="card">
+          <div className="row" style={{ marginBottom: 16 }}>
+            <label>
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === "choice"}
+                onChange={() => setMode("choice")}
+              />
+              4択（意味→語を選ぶ）
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === "recall"}
+                onChange={() => setMode("recall")}
+              />
+              思い出す（○×）
+            </label>
+          </div>
           <div className="row" style={{ alignItems: "center", marginBottom: 16 }}>
             <label>
               出題数
@@ -93,16 +129,78 @@ export default function Page() {
     if (!idiom) {
       return (
         <div className="card">
-          データが見つかりません。<button onClick={() => setView("home")}>ホームへ</button>
+          データが見つかりません。
+          <button onClick={() => setView("home")}>ホームへ</button>
         </div>
       );
     }
+
+    const progress = (
+      <p className="progress">
+        残り {remaining} 語 / 正解 {s.correct} ・ 誤答 {s.wrongIds.length}
+      </p>
+    );
+
+    if (mode === "choice") {
+      const answered = picked !== null;
+      const hit = picked === id;
+      return (
+        <>
+          <h1>この意味の語は？</h1>
+          {progress}
+          <div className="card">
+            <div className="q-meaning">{idiom.meaning}</div>
+            <div className="choices">
+              {(quiz?.choices ?? []).map((c) => {
+                const cls =
+                  answered && c.id === id
+                    ? "choice correct"
+                    : answered && c.id === picked
+                      ? "choice wrong"
+                      : "choice";
+                return (
+                  <button
+                    key={c.id}
+                    className={cls}
+                    disabled={answered}
+                    onClick={() => setPicked(c.id)}
+                  >
+                    {c.word}
+                    <span className="c-reading">{c.reading}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {answered && (
+              <>
+                <p className={hit ? "judge hit" : "judge miss"}>
+                  {hit ? "正解" : `不正解 — 正解は「${idiom.word}」`}
+                </p>
+                {idiom.example && (
+                  <div className="answer">
+                    <div className="example">例：{idiom.example}</div>
+                  </div>
+                )}
+                <div className="spacer" />
+                <button className="primary" onClick={() => answer(hit)}>
+                  次へ
+                </button>
+              </>
+            )}
+          </div>
+          <div className="spacer" />
+          <button className="ghost" onClick={() => setView("home")}>
+            中断してホームへ
+          </button>
+        </>
+      );
+    }
+
+    // recall モード
     return (
       <>
         <h1>出題中</h1>
-        <p className="progress">
-          残り {remaining} 語 / 正解 {s.correct} ・ 誤答 {s.wrongIds.length}
-        </p>
+        {progress}
         <div className="card">
           <div className="word">{idiom.word}</div>
           <div className="reading">{idiom.reading}</div>
@@ -115,7 +213,9 @@ export default function Page() {
             <>
               <div className="answer">
                 <div className="meaning">{idiom.meaning}</div>
-                {idiom.example && <div className="example">例：{idiom.example}</div>}
+                {idiom.example && (
+                  <div className="example">例：{idiom.example}</div>
+                )}
               </div>
               <div className="row">
                 <button className="ok" onClick={() => answer(true)}>
@@ -165,10 +265,10 @@ export default function Page() {
               間違えた語（復習）
             </p>
             <ul className="weak">
-              {s.wrongIds.map((id) => {
-                const w = BY_ID.get(id);
+              {s.wrongIds.map((wid) => {
+                const w = BY_ID.get(wid);
                 return (
-                  <li key={id}>
+                  <li key={wid}>
                     <span>
                       {w?.word}（{w?.reading}）
                     </span>

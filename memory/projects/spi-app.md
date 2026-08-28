@@ -10,6 +10,7 @@
 |------|------|------|
 | 形態 | Next.js App Router + TS のWebアプリ | ローカルで `npm run dev` |
 | 学習方式 | シンプル出題（順番/ランダム）+ 正誤記録 | 誤答は当日中に再出題。SRSは Someday |
+| 出題形式 | 4択（意味→語）／ 思い出す(○×) の2モード | 既定は4択。`lib/choices.ts` が誤答を選定 |
 | データ | まず種データ50語を生成、後で本番データ追加 | `data/idioms.json` が唯一のソース |
 | 永続化 | localStorage | サーバDBなし。個人利用のため |
 
@@ -27,11 +28,12 @@
 - 値: `{ sessions: SessionRecord[] }`
 - `SessionRecord`: `{ date, total, correct, wrongIds: string[] }`
 
-## 実装状況（2026-08-27）
+## 実装状況
 
-- 骨組み〜UI〜取り込みスクリプトまで完成。`npm test` 35件緑 / `npm run build` 成功
-- コアロジック: `lib/queue.ts` `lib/session.ts` `lib/stats.ts` `lib/idioms.ts`
-- 画面: `app/page.tsx`（出題）, `app/history/page.tsx`
+- `npm test` 44件緑 / 静的エクスポートビルド成功。https://toiyy.github.io/spi/ で公開中
+- コアロジック: `lib/queue.ts` `lib/session.ts` `lib/stats.ts` `lib/idioms.ts` `lib/choices.ts`(4択の誤答選定)
+- 画面: `app/page.tsx`（4択 / ○× 出題）, `app/history/page.tsx`
+- 4択の誤答は `idiom.group`（意味グループ、142/200語に付与）＋同字数から `buildChoices` が選定
 - 語彙 `data/idioms.json` は 200 語（すべて `category: "meaning"`）。中身はユーザー作成一覧 `tansaku/SPI言語頻出語句一覧.md`（頻出150+四字熟語50、出典 theport.jp 261089）**のみ**。種51語・自作57語は 2026-08-28 に出題プールから除外（`scratchpad/idioms.283.json` にバックアップ）。example ありは24語だけ
 
 ## 次にやること

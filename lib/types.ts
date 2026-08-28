@@ -7,6 +7,8 @@ export interface Idiom {
   meaning: string;
   example?: string;
   category: Category;
+  /** 4択の誤答を選ぶための意味グループ。同じ値どうしは紛らわしい語 */
+  group?: string;
 }
 
 export type Grade = "correct" | "wrong";

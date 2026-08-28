@@ -28,6 +28,9 @@ export function parseIdioms(raw: unknown): Idiom[] {
     if (o.example !== undefined && typeof o.example !== "string") {
       throw new Error(`idioms[${i}] (${String(o.id)}): "example" は文字列である必要があります`);
     }
+    if (o.group !== undefined && (typeof o.group !== "string" || o.group.length === 0)) {
+      throw new Error(`idioms[${i}] (${String(o.id)}): "group" は空でない文字列である必要があります`);
+    }
     const id = o.id as string;
     if (seen.has(id)) {
       throw new Error(`idioms[${i}]: id "${id}" が重複しています`);
@@ -40,6 +43,7 @@ export function parseIdioms(raw: unknown): Idiom[] {
       meaning: o.meaning as string,
       example: o.example as string | undefined,
       category: o.category,
+      group: o.group as string | undefined,
     };
   });
 }
