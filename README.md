@@ -2,6 +2,8 @@
 
 SPI（適性検査）の「語句の意味」を個人で暗記するための Web アプリ。
 
+公開先: https://toiyy.github.io/spi/ （`main` に push すると GitHub Actions が自動デプロイ）
+
 ## セットアップ
 
 ```bash

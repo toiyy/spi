@@ -1,6 +1,7 @@
 # SPI熟語暗記アプリ
 
-**状態:** 開発中（2026-08-27 開始）
+**状態:** 公開中 https://toiyy.github.io/spi/ （2026-08-27 開始）
+**デプロイ:** GitHub Pages（`toiyy/spi`、`main` push で `.github/workflows/deploy.yml` が自動デプロイ）。`output:'export'` の静的サイト。CI 時のみ `basePath:'/spi'`（`DEPLOY_TARGET=gh-pages`）
 **目的:** SPI(適性検査)の言語分野「語句の意味」「二語の関係」で問われる必須語彙を、個人で暗記するためのアプリ。
 
 ## 決定事項

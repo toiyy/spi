@@ -15,7 +15,6 @@
 - [ ] **SRS(間隔反復)へ拡張** - Leitner 5箱、`lib/session.ts` を差し替え。[[spi-app]] 参照
 - [ ] **二語の関係モード** - `category: "relation"` の出題形式を追加
 - [ ] **postcss 脆弱性対応** - next@16 系へ上げると解消（現状は 15.5.24 で CVE-2025-66478 はパッチ済み）
-- [ ] **Vercel デプロイ**
 
 ## Done
 
@@ -27,3 +26,4 @@
 - [x] ~~SPI頻出語句を追加(1回目)~~ (2026-08-28) - theport.jp 261089 を参考に熟語45+四字熟語12を自作語釈で追加。計107語
 - [x] ~~本番語彙リストを投入~~ (2026-08-28) - ユーザー作成の `tansaku/SPI言語頻出語句一覧.md`（頻出150+四字熟語50）を変換取り込み
 - [x] ~~出題プールを一覧のみに限定~~ (2026-08-28) - 種51語+自作57語を外し、`idioms.json` を一覧の200語だけに再構築。example は既存24語ぶんを引き継ぎ。test/build 緑
+- [x] ~~GitHub Pages デプロイ~~ (2026-08-28) - `output:'export'` 静的化 + `.github/workflows/deploy.yml`。https://toiyy.github.io/spi/ で公開。push→自動デプロイ

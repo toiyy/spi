@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-28 — GitHub Pages 公開
+
+- **https://toiyy.github.io/spi/** で公開（`main` への push で自動デプロイ）
+- `next.config.mjs`: `output: 'export'` + `trailingSlash` + CI 時のみ `basePath: '/spi'`（`DEPLOY_TARGET=gh-pages`）
+- `.github/workflows/deploy.yml`: npm ci → test → build → `upload-pages-artifact` → `deploy-pages`
+- git リポジトリ初期化・初コミット、`gh repo create toiyy/spi --public`
+
 ## 2026-08-28 — 語彙追加
 
 - `data/idioms.json` を **ユーザー作成の一覧 `tansaku/SPI言語頻出語句一覧.md` の 200 語だけ**に再構築
