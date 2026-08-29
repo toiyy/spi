@@ -85,3 +85,18 @@ export function toRecord(state: SessionState, now: Date = new Date()): SessionRe
     wrongIds: s.wrongIds,
   };
 }
+
+/** グレード済みの語数（一発正解 + 誤答経験）。中断時の集計に使う */
+export function answeredCount(state: SessionState): number {
+  return state.clearedFirstTry.length + state.wrongIds.length;
+}
+
+/** 中断時のレコード。total は「実際に解いた語数」にする */
+export function toPartialRecord(state: SessionState, now: Date = new Date()): SessionRecord {
+  return {
+    date: now.toISOString(),
+    total: answeredCount(state),
+    correct: state.clearedFirstTry.length,
+    wrongIds: state.wrongIds,
+  };
+}

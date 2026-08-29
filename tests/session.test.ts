@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { startSession, currentId, grade, summary, toRecord } from "@/lib/session";
+import {
+  startSession,
+  currentId,
+  grade,
+  summary,
+  toRecord,
+  toPartialRecord,
+  answeredCount,
+} from "@/lib/session";
 
 describe("session", () => {
   it("開始時は先頭が current、未完了", () => {
@@ -93,5 +101,20 @@ describe("session", () => {
     const sum = summary(s);
     expect(sum.total).toBe(3);
     expect(sum.correct).toBe(1);
+  });
+
+  it("toPartialRecord は「解いた語数」を total にする（中断用）", () => {
+    let s = startSession(["a", "b", "c", "d", "e"]); // 5語のうち3語だけ解いて中断
+    s = grade(s, "correct"); // a
+    s = grade(s, "wrong"); // b -> 末尾
+    s = grade(s, "correct"); // c
+    expect(answeredCount(s)).toBe(3); // a(一発) + c(一発) + b(誤答)
+    const rec = toPartialRecord(s, new Date("2026-08-29T09:00:00Z"));
+    expect(rec).toEqual({
+      date: "2026-08-29T09:00:00.000Z",
+      total: 3,
+      correct: 2,
+      wrongIds: ["b"],
+    });
   });
 });

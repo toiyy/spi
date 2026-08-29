@@ -7,10 +7,12 @@ import { indexById, parseIdioms } from "@/lib/idioms";
 import { buildQueue } from "@/lib/queue";
 import { buildChoices, type ChoiceSet } from "@/lib/choices";
 import {
+  answeredCount,
   currentId,
   grade,
   startSession,
   summary,
+  toPartialRecord,
   toRecord,
   type SessionState,
 } from "@/lib/session";
@@ -25,7 +27,7 @@ type Mode = "choice" | "recall";
 export default function Page() {
   const [view, setView] = useState<View>("home");
   const [mode, setMode] = useState<Mode>("choice");
-  const [count, setCount] = useState(ALL_IDIOMS.length);
+  const [count, setCount] = useState(Math.min(20, ALL_IDIOMS.length));
   const [shuffle, setShuffle] = useState(true);
   const [session, setSession] = useState<SessionState>(() => startSession([]));
   const [revealed, setRevealed] = useState(false); // recall モード用
@@ -61,6 +63,19 @@ export default function Page() {
       return;
     }
     loadQuizFor(next);
+  }
+
+  /** 中断。1語でも解いていれば途中結果を履歴に残す */
+  function quitToHome() {
+    if (
+      !session.finished &&
+      answeredCount(session) > 0 &&
+      savedFor.current !== session
+    ) {
+      savedFor.current = session;
+      saveSession(toPartialRecord(session));
+    }
+    setView("home");
   }
 
   if (view === "home") {
@@ -190,7 +205,7 @@ export default function Page() {
             )}
           </div>
           <div className="spacer" />
-          <button className="ghost" onClick={() => setView("home")}>
+          <button className="ghost" onClick={quitToHome}>
             中断してホームへ
           </button>
         </>
@@ -230,8 +245,8 @@ export default function Page() {
           )}
         </div>
         <div className="spacer" />
-        <button className="ghost" onClick={() => setView("home")}>
-          中断してホームへ
+        <button className="ghost" onClick={quitToHome}>
+            中断してホームへ
         </button>
       </>
     );
