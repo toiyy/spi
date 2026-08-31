@@ -7,3 +7,6 @@ next-env.d.ts.timestamp
 .DS_Store
 npm-debug.log*
 .env*.local
+
+# 個人メモ（コミットしない）
+/memo.md
