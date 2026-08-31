@@ -33,8 +33,11 @@
 - `npm test` 44件緑 / 静的エクスポートビルド成功。https://toiyy.github.io/spi/ で公開中
 - コアロジック: `lib/queue.ts` `lib/session.ts` `lib/stats.ts` `lib/idioms.ts` `lib/choices.ts`(4択の誤答選定)
 - 画面: `app/page.tsx`（4択 / ○× 出題）, `app/history/page.tsx`
-- 4択の誤答は `idiom.distractors`（`{word, gloss}` を手作り、全200語×3=600件）。`buildChoices` はこれを使い、無ければ `group`＋同字数のフォールバック
-- 4択の答え合わせ画面では、選択肢4つすべての語釈（gloss / 正解は meaning）を表示
+- 4択の誤答は **「同じ `group`（意味ドメイン）・同じ字数・別の `cluster`（同義グループ）」の語彙内の語**から `buildChoices` が選ぶ。分野は同じで意味は別＝正解が一意に定まる
+  - `cluster` は同義・類義の語をまとめたもの（24クラスタ/51語）。ここが同じ語は互いに誤答に出さない。**同義語を誤答にすると正解が2つになる** ため、この制約が問題の正しさを担保している
+  - 同字数の候補が語彙内にない3語（現・押し並べて・揺蕩う）だけ `distractors` で明示
+  - `tests/choices.test.ts` に全200語の回帰テストあり（4択が作れる／同クラスタが混ざらない／字数が揃う）
+- 4択の答え合わせ画面では、選択肢4つすべての語釈を表示
 - 語彙 `data/idioms.json` は 200 語（すべて `category: "meaning"`）。中身はユーザー作成一覧 `tansaku/SPI言語頻出語句一覧.md`（頻出150+四字熟語50、出典 theport.jp 261089）**のみ**。種51語・自作57語は 2026-08-28 に出題プールから除外（`scratchpad/idioms.283.json` にバックアップ）。example ありは24語だけ
 
 ## 次にやること

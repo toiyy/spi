@@ -29,6 +29,11 @@ function wordLen(w: string): number {
   return [...w].length;
 }
 
+/** 同義・類義でまとめたクラスタ。未指定なら自分だけ */
+function clusterOf(x: Idiom): string {
+  return x.cluster ?? x.id;
+}
+
 // 語釈の中身は主に漢字熟語が担うので、2 文字以上の漢字連なりをキーワードとして取り出す。
 const STOP = new Set(["物事", "相手", "自分", "非常", "場合", "様子", "程度", "全体"]);
 
@@ -43,6 +48,7 @@ function overlap(a: Set<string>, b: Set<string>): number {
   return n;
 }
 
+/** 正解の語釈と話題が近い順に並べ替える（同義語はクラスタで既に除いてある） */
 function rankByMeaning(
   cands: readonly Idiom[],
   correct: Idiom,
@@ -57,8 +63,10 @@ function rankByMeaning(
 
 /**
  * 4択問題の選択肢を作る。
- * `correct.distractors`（手作りの近い語＋語釈）があればそれを誤答に使う。
- * 無ければ語彙プールから「同じ意味グループ かつ 同字数」→「同字数」→「その他」で補う。
+ *
+ * 誤答は「同じ意味ドメイン(group) かつ 同じ字数 かつ 別の意味クラスタ(cluster)」の語から選ぶ。
+ * ドメインが同じなので紛らわしく、クラスタが違うので正解は一つに定まる。
+ * 同字数の候補が語彙内にない語だけ `distractors` で明示する。
  * 入力配列は破壊しない。
  */
 export function buildChoices(
@@ -87,28 +95,29 @@ export function buildChoices(
     for (const x of pool) {
       if (x.id !== correct.id && !byId.has(x.id)) byId.set(x.id, x);
     }
-    const others = [...byId.values()];
-    const cLen = wordLen(correct.word);
-    const inGroup = (x: Idiom) =>
-      correct.group !== undefined && x.group === correct.group;
+    // 同義クラスタの語は「正解が2つある問題」になるので必ず除く
+    const cCluster = clusterOf(correct);
+    const others = [...byId.values()].filter((x) => clusterOf(x) !== cCluster);
 
-    const tierGroup = others.filter((x) => inGroup(x) && wordLen(x.word) === cLen);
-    const tierLen = others.filter((x) => !inGroup(x) && wordLen(x.word) === cLen);
-    const tierRest = others.filter(
-      (x) => wordLen(x.word) !== cLen && !tierGroup.includes(x),
+    const cLen = wordLen(correct.word);
+    const sameLen = others.filter((x) => wordLen(x.word) === cLen);
+    const sameGroup = sameLen.filter(
+      (x) => correct.group !== undefined && x.group === correct.group,
     );
+    const otherGroup = sameLen.filter((x) => !sameGroup.includes(x));
+    const otherLen = others.filter((x) => wordLen(x.word) !== cLen);
 
     const ordered: { word: string; gloss: string }[] = [
       ...(correct.distractors ?? []),
-      ...rankByMeaning(tierGroup, correct, rng).map((x) => ({
+      ...rankByMeaning(sameGroup, correct, rng).map((x) => ({
         word: x.word,
         gloss: x.meaning,
       })),
-      ...rankByMeaning(tierLen, correct, rng).map((x) => ({
+      ...rankByMeaning(otherGroup, correct, rng).map((x) => ({
         word: x.word,
         gloss: x.meaning,
       })),
-      ...shuffleArray(tierRest, rng).map((x) => ({
+      ...shuffleArray(otherLen, rng).map((x) => ({
         word: x.word,
         gloss: x.meaning,
       })),

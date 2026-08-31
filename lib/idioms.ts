@@ -28,8 +28,10 @@ export function parseIdioms(raw: unknown): Idiom[] {
     if (o.example !== undefined && typeof o.example !== "string") {
       throw new Error(`idioms[${i}] (${String(o.id)}): "example" は文字列である必要があります`);
     }
-    if (o.group !== undefined && (typeof o.group !== "string" || o.group.length === 0)) {
-      throw new Error(`idioms[${i}] (${String(o.id)}): "group" は空でない文字列である必要があります`);
+    for (const key of ["group", "cluster"] as const) {
+      if (o[key] !== undefined && (typeof o[key] !== "string" || (o[key] as string).length === 0)) {
+        throw new Error(`idioms[${i}] (${String(o.id)}): "${key}" は空でない文字列である必要があります`);
+      }
     }
     if (o.distractors !== undefined) {
       const ds = o.distractors as unknown;
@@ -57,6 +59,7 @@ export function parseIdioms(raw: unknown): Idiom[] {
       example: o.example as string | undefined,
       category: o.category,
       group: o.group as string | undefined,
+      cluster: o.cluster as string | undefined,
       distractors: o.distractors as Idiom["distractors"],
     };
   });
