@@ -43,4 +43,23 @@ describe("data/idioms.json (種データ)", () => {
     const list = parseIdioms(idiomsJson);
     expect(indexById(list).size).toBe(list.length);
   });
+
+  it("全語に例文がある", () => {
+    const noExample = parseIdioms(idiomsJson)
+      .filter((x) => !x.example)
+      .map((x) => x.word);
+    expect(noExample).toEqual([]);
+  });
+
+  it("読みはひらがな（と長音符）だけ", () => {
+    const bad = parseIdioms(idiomsJson)
+      .filter((x) => !/^[ぁ-んー]+$/.test(x.reading))
+      .map((x) => `${x.word}(${x.reading})`);
+    expect(bad).toEqual([]);
+  });
+
+  it("語が重複していない", () => {
+    const words = parseIdioms(idiomsJson).map((x) => x.word);
+    expect(new Set(words).size).toBe(words.length);
+  });
 });
